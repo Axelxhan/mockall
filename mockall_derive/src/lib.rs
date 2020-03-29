@@ -10,9 +10,10 @@ extern crate proc_macro;
 
 use cfg_if::cfg_if;
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote};
+use quote::{ToTokens, format_ident, quote};
 use std::{
     collections::{HashMap, HashSet},
+    env,
     iter::FromIterator,
     mem
 };
@@ -25,8 +26,12 @@ use syn::{
 mod automock;
 mod expectation;
 mod manual_mock;
-use crate::automock::do_automock;
-use crate::manual_mock::{ManualMock, do_mock};
+mod mock_item;
+mod mockable_item;
+use crate::automock::Attrs;
+use crate::manual_mock::ManualMock;
+use crate::mock_item::MockItem;
+use crate::mockable_item::MockableItem;
 use crate::expectation::Expectation;
 
 #[derive(Debug)]
@@ -906,25 +911,25 @@ fn staticize(generics: &Generics) -> Generics {
     ret
 }
 
-fn mock_it<M: Into<MockableItem>>(item: M) -> proc_macro::TokenStream {
-    let mockable = MockableItem::from(item);
+fn mock_it<M: Into<MockableItem>>(item: M) -> TokenStream {
+    let mockable: MockableItem = item.into();
     let mock = MockItem::from(mockable);
-    mock.to_tokens(&mut output);
+    let ts = mock.into_token_stream();
     if env::var("MOCKALL_DEBUG").is_ok() {
         println!("{}", ts);
     }
-    output.into()
+    ts
 }
 
 #[proc_macro]
-pub fn mock(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let item: ManualMock = match syn::parse2(input) {
+pub fn mock(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let item: ManualMock = match syn::parse2(input.into()) {
         Ok(mock) => mock,
         Err(err) => {
             return err.to_compile_error().into();
         }
     };
-    mock_it(item)
+    mock_it(item).into()
 }
 
 #[proc_macro_attribute]
@@ -945,7 +950,8 @@ pub fn automock(attrs: proc_macro::TokenStream, input: proc_macro::TokenStream)
             return err.to_compile_error().into();
         }
     };
-    mock_it(item)
+    output.extend(mock_it(item));
+    output.into()
 }
 
 #[cfg(test)]
