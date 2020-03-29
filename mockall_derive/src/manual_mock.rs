@@ -545,12 +545,15 @@ fn tim2iim(m: &syn::TraitItemMethod, vis: &syn::Visibility)
 }
 
 pub(crate) fn do_mock(input: TokenStream) -> TokenStream {
-    let mock: ManualMock = match syn::parse2(input) {
+    let item: ManualMock = match syn::parse2(input) {
         Ok(mock) => mock,
         Err(err) => {
             return err.to_compile_error();
         }
     };
+    let mockable = MockableItem::from(item);
+    let mock = MockItem::from(mockable);
+    let ts = mock.into_token_stream();
     if env::var("MOCKALL_DEBUG").is_ok() {
         println!("{}", mock.gen());
     }

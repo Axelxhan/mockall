@@ -906,9 +906,25 @@ fn staticize(generics: &Generics) -> Generics {
     ret
 }
 
+fn mock_it<M: Into<MockableItem>>(item: M) -> proc_macro::TokenStream {
+    let mockable = MockableItem::from(item);
+    let mock = MockItem::from(mockable);
+    mock.to_tokens(&mut output);
+    if env::var("MOCKALL_DEBUG").is_ok() {
+        println!("{}", ts);
+    }
+    output.into()
+}
+
 #[proc_macro]
 pub fn mock(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    do_mock(item.into()).into()
+    let item: ManualMock = match syn::parse2(input) {
+        Ok(mock) => mock,
+        Err(err) => {
+            return err.to_compile_error().into();
+        }
+    };
+    mock_it(item)
 }
 
 #[proc_macro_attribute]
@@ -917,8 +933,19 @@ pub fn automock(attrs: proc_macro::TokenStream, input: proc_macro::TokenStream)
 {
     let input: proc_macro2::TokenStream = input.into();
     let mut output = input.clone();
-    output.extend(do_automock(attrs.into(), input));
-    output.into()
+    let attrs: Attrs = match parse2(attrs.into()) {
+        Ok(a) => a,
+        Err(err) => {
+            return err.to_compile_error().into();
+        }
+    };
+    let item: Item = match parse2(input) {
+        Ok(item) => item,
+        Err(err) => {
+            return err.to_compile_error().into();
+        }
+    };
+    mock_it(item)
 }
 
 #[cfg(test)]

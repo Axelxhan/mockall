@@ -659,17 +659,9 @@ fn do_automock(attr_stream: TokenStream, input: TokenStream) -> TokenStream
             return err.to_compile_error();
         }
     };
-    let ts = match item {
-        Item::Impl(item_impl) => mock_impl(item_impl),
-        Item::ForeignMod(foreign_mod) => mock_foreign(attrs, foreign_mod),
-        Item::Mod(item_mod) => mock_module(item_mod),
-        Item::Trait(item_trait) => mock_trait(attrs, item_trait),
-        _ => {
-            compile_error(item.span(),
-                "#[automock] does not support this item type");
-            TokenStream::new()
-        }
-    };
+    let mockable = MockableItem::from(item);
+    let mock = MockItem::from(mockable);
+    let ts = mock.into_token_stream();
     if env::var("MOCKALL_DEBUG").is_ok() {
         println!("{}", ts);
     }
