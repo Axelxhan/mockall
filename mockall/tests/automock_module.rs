@@ -22,23 +22,23 @@ cfg_if! {
                 pub fn bar1(_x: T) -> i64 {unimplemented!()}
             }
 
-            #[test]
-            #[should_panic(expected = "mock_foo::bar1: No matching expectation found")]
-            fn with_no_matches() {
-                let ctx = mock_foo::bar1_context();
-                ctx.expect()
-                    .with(predicate::eq(4))
-                    .return_const(0);
-                mock_foo::bar1(5);
-            }
+            //#[test]
+            //#[should_panic(expected = "mock_foo::bar1: No matching expectation found")]
+            //fn with_no_matches() {
+                //let ctx = mock_foo::bar1_context();
+                //ctx.expect()
+                    //.with(predicate::eq(4))
+                    //.return_const(0);
+                //mock_foo::bar1(5);
+            //}
 
-            #[test]
-            fn returning() {
-                let ctx = mock_foo::bar_context();
-                ctx.expect()
-                    .returning(|x| i64::from(x) + 1);
-                assert_eq!(5, mock_foo::bar(4));
-            }
+            //#[test]
+            //fn returning() {
+                //let ctx = mock_foo::bar_context();
+                //ctx.expect()
+                    //.returning(|x| i64::from(x) + 1);
+                //assert_eq!(5, mock_foo::bar(4));
+            //}
         }
     }
 }
